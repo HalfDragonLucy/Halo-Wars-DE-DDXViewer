@@ -13,11 +13,13 @@ namespace DDXViewer
     {
         private static readonly string exePath = System.Reflection.Assembly.GetExecutingAssembly().Location;
         private static readonly string exeDirectory = Path.GetDirectoryName(exePath);
-        private static readonly string resourcesPath = $@"{exeDirectory}\Ressources";
+        private static readonly string resourcesPath = $@"{exeDirectory}\Resources";
         private static readonly string toolsPath = $@"{exeDirectory}\Tools";
         private static readonly string texConvPath = $@"{toolsPath}\texconv.exe";
+
         private static string resourceFilePath;
         private static string resourceFileConvertedPath;
+
         private int numberOfFiles;
         private Image displayImage;
 
@@ -174,6 +176,36 @@ namespace DDXViewer
         {
             BackColor = Color.FromName(ThemesList.SelectedItem.ToString());
             Settings.Default.Color = ThemesList.SelectedItem.ToString();
+
+            Settings.Default.Save();
+        }
+
+        private void openINToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Process paint = new Process();
+
+            FileDialogPaint.ShowHelp = false;
+            FileDialogPaint.Title = "Select paintdotnet.exe";
+            FileDialogPaint.FileName = "paintdotnet.exe";
+
+            if (Settings.Default.PaintPath != "")
+            {
+                paint.StartInfo.FileName = Settings.Default.PaintPath;
+                paint.StartInfo.Arguments = $"{resourceFileConvertedPath}";
+                paint.Start();
+            }
+            else
+            {
+                if (FileDialogPaint.ShowDialog() == DialogResult.OK)
+                {
+                    paint.StartInfo.FileName = FileDialogPaint.FileName;
+                    paint.StartInfo.Arguments = $"{resourceFileConvertedPath}";
+                    paint.Start();
+
+                    Settings.Default.PaintPath = FileDialogPaint.FileName;
+                    Settings.Default.Save();
+                }
+            }
         }
     }
 }

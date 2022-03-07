@@ -34,5 +34,17 @@ namespace DDXViewer.Properties {
                 this["Color"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string PaintPath {
+            get {
+                return ((string)(this["PaintPath"]));
+            }
+            set {
+                this["PaintPath"] = value;
+            }
+        }
     }
 }

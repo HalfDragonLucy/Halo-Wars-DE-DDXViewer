@@ -34,6 +34,8 @@
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.themeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ThemesList = new System.Windows.Forms.ToolStripComboBox();
+            this.openINToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.FileDialogPaint = new System.Windows.Forms.OpenFileDialog();
             this.MainPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.DisplayBox)).BeginInit();
             this.menuStrip1.SuspendLayout();
@@ -62,7 +64,8 @@
             // menuStrip1
             // 
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.themeToolStripMenuItem});
+            this.themeToolStripMenuItem,
+            this.openINToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
             this.menuStrip1.Size = new System.Drawing.Size(1584, 24);
@@ -84,6 +87,17 @@
             this.ThemesList.Size = new System.Drawing.Size(121, 23);
             this.ThemesList.Text = "Color";
             this.ThemesList.SelectedIndexChanged += new System.EventHandler(this.ThemesList_SelectedIndexChanged);
+            // 
+            // openINToolStripMenuItem
+            // 
+            this.openINToolStripMenuItem.Name = "openINToolStripMenuItem";
+            this.openINToolStripMenuItem.Size = new System.Drawing.Size(111, 20);
+            this.openINToolStripMenuItem.Text = "Open In Paint.net";
+            this.openINToolStripMenuItem.Click += new System.EventHandler(this.openINToolStripMenuItem_Click);
+            // 
+            // FileDialogPaint
+            // 
+            this.FileDialogPaint.FileName = "FileDialogPaint";
             // 
             // Form1
             // 
@@ -115,6 +129,8 @@
         private System.Windows.Forms.MenuStrip menuStrip1;
         private System.Windows.Forms.ToolStripMenuItem themeToolStripMenuItem;
         private System.Windows.Forms.ToolStripComboBox ThemesList;
+        private System.Windows.Forms.ToolStripMenuItem openINToolStripMenuItem;
+        private System.Windows.Forms.OpenFileDialog FileDialogPaint;
     }
 }
 
