@@ -25,25 +25,101 @@ namespace DDXViewer.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string Color {
+        [global::System.Configuration.DefaultSettingValueAttribute("White")]
+        [global::System.Configuration.SettingsManageabilityAttribute(global::System.Configuration.SettingsManageability.Roaming)]
+        public global::System.Drawing.Color BackColor {
             get {
-                return ((string)(this["Color"]));
+                return ((global::System.Drawing.Color)(this["BackColor"]));
             }
             set {
-                this["Color"] = value;
+                this["BackColor"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("")]
+        [global::System.Configuration.SettingsManageabilityAttribute(global::System.Configuration.SettingsManageability.Roaming)]
         public string PaintPath {
             get {
                 return ((string)(this["PaintPath"]));
             }
             set {
                 this["PaintPath"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.SpecialSettingAttribute(global::System.Configuration.SpecialSetting.WebServiceUrl)]
+        [global::System.Configuration.DefaultSettingValueAttribute("https://github.com/microsoft/DirectXTex/releases/download/feb2022/texconv.exe")]
+        [global::System.Configuration.SettingsManageabilityAttribute(global::System.Configuration.SettingsManageability.Roaming)]
+        public string TexConvURL {
+            get {
+                return ((string)(this["TexConvURL"]));
+            }
+            set {
+                this["TexConvURL"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1024")]
+        public int MaxRate {
+            get {
+                return ((int)(this["MaxRate"]));
+            }
+            set {
+                this["MaxRate"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("512")]
+        public int GoodRate {
+            get {
+                return ((int)(this["GoodRate"]));
+            }
+            set {
+                this["GoodRate"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("256")]
+        public int MediumRate {
+            get {
+                return ((int)(this["MediumRate"]));
+            }
+            set {
+                this["MediumRate"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("128")]
+        public int PoorRate {
+            get {
+                return ((int)(this["PoorRate"]));
+            }
+            set {
+                this["PoorRate"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("25")]
+        public int MaxBackUp {
+            get {
+                return ((int)(this["MaxBackUp"]));
+            }
+            set {
+                this["MaxBackUp"] = value;
             }
         }
     }
