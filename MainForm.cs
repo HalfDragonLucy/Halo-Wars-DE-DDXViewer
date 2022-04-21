@@ -3,8 +3,8 @@ using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.IO;
-using System.Net;
 using System.Reflection;
 using System.Windows.Forms;
 
@@ -12,19 +12,13 @@ namespace DDXViewer
 {
     public partial class MainForm : Form
     {
-        private static readonly string exePath = Assembly.GetExecutingAssembly().Location;
-        private static readonly string exeDirectory = Path.GetDirectoryName(exePath);
-        private static readonly string resourcesPath = $@"{exeDirectory}\Resources";
-        private static readonly string backupPath = $@"{exeDirectory}\Backups";
-        private static readonly string dependenciesPath = $@"{exeDirectory}\Dependencies";
-        private static readonly string texConvPath = $@"{dependenciesPath}\texconv.exe";
+        private static readonly string exePath = Assembly.GetExecutingAssembly().Location, exeDirectory = Path.GetDirectoryName(exePath), resourcesPath = $@"{exeDirectory}\Resources", backupPath = $@"{exeDirectory}\Backups", dependenciesPath = $@"{exeDirectory}\Dependencies", texConvPath = $@"{dependenciesPath}\texconv.exe";
         private string originalFilePath;
         private static string resourceFilePath;
         private string resourceFileName;
         private static string resourceFileConvertedPath;
 
         private Image displayImage;
-
         private static readonly ProcessStartInfo TexConvInfo = new ProcessStartInfo
         {
             UseShellExecute = true,
@@ -32,7 +26,6 @@ namespace DDXViewer
             WindowStyle = ProcessWindowStyle.Hidden
         };
         private static readonly Process TexConv = new Process { StartInfo = TexConvInfo, EnableRaisingEvents = true };
-        private readonly Process PaintDotNet = new Process();
         private static readonly string[] SizeSuffixes =
                   { "bytes", "KB", "MB", "GB" };
 
@@ -53,17 +46,18 @@ namespace DDXViewer
             // Load Prefered BackColor
             BackColor = Settings.Default.BackColor;
 
-            // Check if the backup limit hasn't been reached, if yes, delete.
-            CheckBackUp();
-
             // Close the application if input is not ddx.
             CheckIfInputIsDDX();
 
-            // Check if Dependencies and Resources folder exists, if not, create them.
+            // Check if Dependencies exists, if not, display error message and close the application.
             if (!HasDependencies())
             {
-                CreateDependencies();
+                MessageBox.Show("Dependencies not found. Please download the dependencies from the GitHub repository.", "Dependencies not found", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Close();
             }
+
+            // Check if the backup limit hasn't been reached, if yes, delete.
+            CheckBackUp();
 
             // Copy the picture into Ressources folder
             CopyOriginalDDX();
@@ -78,136 +72,173 @@ namespace DDXViewer
 
         private void CheckBackUp()
         {
-            DirectoryInfo di = new DirectoryInfo(backupPath);
-
-            if (di.GetFiles().Length > Settings.Default.MaxBackUp)
+            // Check if the backup limit hasn't been reached, if yes, delete.
+            if (Directory.GetFiles(backupPath).Length >= Settings.Default.MaxBackUp)
             {
-                foreach (FileInfo file in di.GetFiles())
+                // for each file in the backup folder
+                foreach (string file in Directory.GetFiles(backupPath))
                 {
-                    file.Delete();
+                    // delete the file
+                    File.Delete(file);
                 }
             }
         }
 
         private void CheckIfInputIsDDX()
         {
-            if (Path.GetExtension(arguments[1]) != ".ddx")
+            // Check if the input has the extension ddx
+            if (arguments.Length > 1 && !arguments[1].EndsWith(".ddx"))
             {
-                if (MessageBox.Show("Opened file is not in a valid DDX format!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error) == DialogResult.OK)
-                {
-                    Application.Exit();
-                }
+                // show a message box with the error message and close the application 
+                MessageBox.Show("The input file must be a .ddx file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Environment.Exit(0);
             }
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e) => CleanUp();
 
-        private bool HasDependencies()
-        {
-            if (Directory.Exists(resourcesPath) && Directory.Exists(dependenciesPath) && Directory.Exists(backupPath))
-            {
-                if (File.Exists(texConvPath))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private void CreateDependencies()
-        {
-            if (!Directory.Exists(resourcesPath)) { Directory.CreateDirectory(resourcesPath); }
-            if (!Directory.Exists(backupPath)) { Directory.CreateDirectory(backupPath); }
-            if (!Directory.Exists(dependenciesPath)) { Directory.CreateDirectory(dependenciesPath); }
-            if (!File.Exists(texConvPath))
-            {
-                using (WebClient client = new WebClient())
-                {
-                    client.DownloadFile(Settings.Default.TexConvURL, texConvPath);
-                }
-            }
-        }
+        private bool HasDependencies() =>
+            // check if the dependencies folder exists and resource folder exists and backup folder exists and texconv.exe exists
+            Directory.Exists(dependenciesPath) && Directory.Exists(resourcesPath) && Directory.Exists(backupPath) && File.Exists(texConvPath);
 
         private void CopyOriginalDDX()
         {
+            // set the original file path to the input file path
             originalFilePath = arguments[1];
-            FileInfo file = new FileInfo(originalFilePath);
-            resourceFileName = Path.GetFileNameWithoutExtension(file.Name);
+
+            // set the resource file name to the input file name
+            resourceFileName = Path.GetFileNameWithoutExtension(originalFilePath);
+
+            // set the resource file path to the resource folder path + resource file name and change the extension to .dds
             resourceFilePath = $@"{resourcesPath}\{resourceFileName}.dds";
-            File.Copy(originalFilePath, resourceFilePath, true);
+
+            // if the resource file doesn't exist, copy the original file to the resource folder
+            if (!File.Exists(resourceFilePath))
+            {
+                File.Copy(originalFilePath, resourceFilePath);
+            }
         }
 
         private void ConvertResourceDDX()
         {
-            TexConv.StartInfo.Arguments = $"\"{resourceFilePath}\" -ft png -y -o \"{resourcesPath}\"";
+            // Set TexConv arguments to convert the resource file to a .png file and save it to the resources folder with the same name
+            TexConvInfo.Arguments = $"\"{ resourceFilePath}\" -ft png -y -o \"{resourcesPath}\"";
+
+            // Start the process
             TexConv.Start();
 
+            // Wait for the process to finish
             TexConv.WaitForExit();
 
-            if (File.Exists(resourceFilePath)) { File.Delete(resourceFilePath); }
+            // if the process has exited with an error code
+            if (TexConv.ExitCode != 0)
+            {
+                // show a message box with the error message and close the application 
+                MessageBox.Show("An error occured while converting the file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Environment.Exit(0);
+            }
+
+            // if the resource file exist in the resources folder delete it
+            if (File.Exists(resourceFilePath))
+            {
+                File.Delete(resourceFilePath);
+            }
+
+            // set the resource file converted path to the resources folder path + resource file name and change the extension to .png
             resourceFileConvertedPath = $@"{resourcesPath}\{resourceFileName}.png";
         }
 
         private void DisplayConvertedDDX()
         {
-            displayImage = Image.FromFile(resourceFileConvertedPath);
-            DisplayBox.Image = displayImage;
-
-            if (displayImage.Width >= Settings.Default.MediumRate)
+            // if the resource file converted path exist set the display image to the resource file converted path
+            if (File.Exists(resourceFileConvertedPath))
             {
-                Width = displayImage.Width;
-                Height = displayImage.Height;
+                displayImage = Image.FromFile(resourceFileConvertedPath);
+                // set the DisplayBox to the display image
+                DisplayBox.Image = displayImage;
+            }
+            else
+            {
+                // if the resource file converted path doesn't exist show a message box with the error message and close the application
+                MessageBox.Show("An error occured while converting the file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Environment.Exit(0);
+            }
+
+            // set the display image size to the display image size if the display image size is smaller than the form size and if the display image size is bigger than the form size
+            if (displayImage.Size.Width < Size.Width && displayImage.Size.Height < Size.Height)
+            {
+                DisplayBox.Size = displayImage.Size;
+            }
+            else if (displayImage.Size.Width > Size.Width && displayImage.Size.Height > Size.Height)
+            {
+                DisplayBox.Size = Size;
+            }
+            else
+            {
+                // if the display image size is smaller than the form size and bigger than the form size set the display image size to the form size
+                DisplayBox.Size = Size;
             }
         }
 
         private void CleanUp()
         {
+            // save the default settings
             Settings.Default.Save();
+
+            // disposes the display image and the display box if they exist
             displayImage?.Dispose();
-            DisplayBox.Image?.Dispose();
+            DisplayBox?.Dispose();
 
-            DirectoryInfo di = new DirectoryInfo(resourcesPath);
-
-            foreach (FileInfo file in di.GetFiles())
+            // dispose of the files in the resources folder if they exist
+            foreach (string file in Directory.GetFiles(resourcesPath))
             {
-                file.Delete();
+                File.Delete(file);
             }
+
+            // dispose of texconv process if it exists
+            TexConv?.Dispose();
         }
 
         private void OpenInPaintDotNet(object sender, EventArgs e)
         {
-            FileDialog.ShowHelp = false;
-            FileDialog.Title = "Select paintdotnet.exe";
-            FileDialog.FileName = "paintdotnet.exe";
-
-            if (Settings.Default.PaintPath != "")
+            // if Settings.Default.PaintPath is not empty run PaintDotNet with the resource file converted path
+            if (!string.IsNullOrEmpty(Settings.Default.PaintPath))
             {
-                PaintDotNet.StartInfo.FileName = Settings.Default.PaintPath;
-                PaintDotNet.StartInfo.Arguments = $"{resourceFileConvertedPath}";
-                PaintDotNet.Start();
+                Process.Start(Settings.Default.PaintPath, resourceFileConvertedPath);
             }
             else
             {
+                // set the FileDialog to open a .exe file and set the filter to .exe files only set the title to Open Paint.NET
+                FileDialog.Filter = "Paint.NET Executable|*.exe";
+                FileDialog.Title = "Open Paint.NET";
+
+                // if the user has selected a file set PaintDotNet path to the file path and save the settings else show a message box with the error message and close the application
                 if (FileDialog.ShowDialog() == DialogResult.OK)
                 {
-                    PaintDotNet.StartInfo.FileName = FileDialog.FileName;
-                    PaintDotNet.StartInfo.Arguments = $"{resourceFileConvertedPath}";
-                    PaintDotNet.Start();
-
                     Settings.Default.PaintPath = FileDialog.FileName;
                     Settings.Default.Save();
+                    Process.Start(Settings.Default.PaintPath, resourceFileConvertedPath);
+                }
+                else
+                {
+                    MessageBox.Show("An error occured while opening Paint.NET.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    Environment.Exit(0);
                 }
             }
         }
 
         private void ThemeColorSelection(object sender, EventArgs e)
         {
+            // Show ColorPicker dialog and set the BackColor to the selected color if the user has selected a color and save the settings BackColor to the selected color else return 
             if (ColorPicker.ShowDialog() == DialogResult.OK)
             {
                 BackColor = ColorPicker.Color;
                 Settings.Default.BackColor = ColorPicker.Color;
-
                 Settings.Default.Save();
+            }
+            else
+            {
+                return;
             }
         }
         private void CompressionMaxRate(object sender, EventArgs e) => CompressAndSaveImage(displayImage, Settings.Default.MaxRate);
@@ -220,44 +251,53 @@ namespace DDXViewer
 
         private void CompressAndSaveImage(Image img, int compressionRate)
         {
-            if (img.Size.Width >= compressionRate && img.Size.Height >= compressionRate)
+            // if img is not null and img.Size is bigger than compressionRate then resize the image to compressionRate and save it with the same name with "compressed" added to the end of the file name and the extension to .png 
+            if (img != null && img.Size.Width > compressionRate && img.Size.Height > compressionRate)
             {
-                Bitmap bitmap = new Bitmap(img, new Size(compressionRate, compressionRate));
+                img = img.GetThumbnailImage(compressionRate, compressionRate, null, IntPtr.Zero);
                 string compressedPath = $@"{resourcesPath}\{resourceFileName}_compressed.png";
-                bitmap.Save(compressedPath, System.Drawing.Imaging.ImageFormat.Png);
+                img.Save(compressedPath, ImageFormat.Png);
 
-                long old = new FileInfo(resourceFileConvertedPath).Length;
-                long _new = new FileInfo($@"{resourcesPath}\{resourceFileName}_compressed.png").Length;
-
-                if (MessageBox.Show($"Current Size = {SizeSuffix(old)}.\nEstimated Compressed Size = {SizeSuffix(_new)}.", "Estimater", MessageBoxButtons.OKCancel, MessageBoxIcon.Information) == DialogResult.OK)
+                // get img file size in bytes and show a message box with the file size in bytes
+                if (MessageBox.Show($"Current Size = {SizeSuffix(File.ReadAllBytes(resourceFileConvertedPath).Length)}\nEstimated Compressed Size = {SizeSuffix(File.ReadAllBytes(compressedPath).Length)} bytes", "Estimater", MessageBoxButtons.OK, MessageBoxIcon.Information) == DialogResult.OK)
                 {
+                    // BackUp the image
                     BackUpImage();
 
+                    // set TexConv arguments to the img file and compress it 
                     TexConv.StartInfo.Arguments = $"\"{compressedPath}\" -r:keep -f BC7_UNORM -bc x -if POINT -ft dds -fl 11.0 -tu -m 1 -y -o \"{Path.GetDirectoryName(compressedPath)}\"";
-                    TexConv.Start();
 
+                    // run TexConv process and wait for it to finish
+                    TexConv.Start();
                     TexConv.WaitForExit();
 
-                    File.Copy(compressedPath.Replace(".png", ".dds"), originalFilePath, true);
+                    // remplace the compressed image extension to .dds
+                    string compressedDDS = $@"{Path.GetDirectoryName(compressedPath)}\{Path.GetFileNameWithoutExtension(compressedPath)}.dds";
+                    // copy the compressed image to original image path and delete the compressed image
+                    File.Copy(compressedDDS, originalFilePath, true);
+                    File.Delete(compressedDDS);
 
+                    // restart the application
                     Application.Restart();
                 }
                 else
                 {
-                    bitmap.Dispose();
-                    File.Delete($@"{resourcesPath}\{resourceFileName}_compressed.png");
+                    // dispose of the img
+                    img.Dispose();
+
+                    // dipose of the compressed image if it exists
+                    if (File.Exists(compressedPath))
+                    {
+                        File.Delete(compressedPath);
+                    }
                 }
             }
-            else if (img.Size.Width <= compressionRate && img.Size.Height <= compressionRate && File.Exists($@"{backupPath}\{resourceFileName}.ddx"))
+            // else if the img is not null and img.Size is smaller than compressionRate then show a message box with the error message and dispose of the img
+            else if (img != null && img.Size.Width < compressionRate && img.Size.Height < compressionRate)
             {
-                File.Copy($@"{backupPath}\{resourceFileName}.ddx", originalFilePath, true);
-                Application.Restart();
+                MessageBox.Show("The image is too small to compress.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                img.Dispose();
             }
-            else
-            {
-                MessageBox.Show("This file is already at this compression level!", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-
         }
 
         private void BackUpImage() => File.Copy(originalFilePath, $@"{backupPath}\{resourceFileName}.ddx", true);
